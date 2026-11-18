@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Banco en línea - Créditos</title>
+<style>
+  body{font-family:sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem}
+  fieldset{margin-bottom:1rem}input,select,button{margin:.2rem}
+  pre{background:#f4f4f4;padding:.5rem;overflow:auto}
+</style>
+</head>
+<body>
+<h1>Banco en línea – Créditos</h1>
+
+<fieldset><legend>Nuevo cliente</legend>
+  <input id="name" placeholder="Nombre"><input id="doc" placeholder="Documento">
+  <button onclick="addClient()">Crear</button>
+</fieldset>
+
+<fieldset><legend>Otorgar crédito</legend>
+  <select id="clientId"></select><select id="type"></select>
+  <input id="amount" type="number" placeholder="Monto"><input id="term" type="number" placeholder="Meses">
+  <button onclick="grant()">Otorgar</button>
+</fieldset>
+
+<fieldset><legend>Consultar estado</legend>
+  <input id="creditId" type="number" placeholder="ID crédito">
+  <button onclick="queryStatus()">Consultar</button>
+</fieldset>
+
+<fieldset><legend>Créditos por categoría</legend>
+  <select id="filter"></select><button onclick="byType()">Listar</button>
+</fieldset>
+
+<pre id="out"></pre>
+
+<script>
+const TYPES = ["CONSUMO", "VIVIENDA", "VEHICULO", "EDUCATIVO"];
+const FIELDS = "id type amount termMonths interestRate status client{name}";
+const $ = id => document.getElementById(id);
+
+async function gql(query, variables, show = true) {
+  const r = await fetch("/graphql", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({query, variables})
+  });
+  const j = await r.json();
+  if (show) $("out").textContent = JSON.stringify(j.errors ?? j.data, null, 2);
+  return j.data;
+}
+
+async function loadClients() {
+  const d = await gql("{clients{id name document}}", {}, false);
+  $("clientId").replaceChildren(...d.clients.map(c => new Option(`${c.name} (${c.document})`, c.id)));
+}
+
+async function addClient() {
+  await gql("mutation($n:String!,$d:String!){addClient(name:$n,document:$d){id name}}",
+            {n: $("name").value, d: $("doc").value});
+  loadClients();
+}
+
+const grant = () => gql(
+  `mutation($c:ID!,$t:CreditType!,$a:Float!,$m:Int!){grantCredit(clientId:$c,type:$t,amount:$a,termMonths:$m){${FIELDS}}}`,
+  {c: $("clientId").value, t: $("type").value, a: +$("amount").value, m: +$("term").value});
+
+const queryStatus = () => gql(
+  `query($i:ID!){creditById(id:$i){${FIELDS}}}`, {i: $("creditId").value});
+
+const byType = () => gql(
+  `query($t:CreditType!){creditsByType(type:$t){${FIELDS}}}`, {t: $("filter").value});
+
+["type", "filter"].forEach(id => $(id).replaceChildren(...TYPES.map(t => new Option(t))));
+loadClients();
+</script>
+</body>
+</html>

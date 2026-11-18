@@ -1,0 +1,34 @@
+# Pruebas en GraphiQL (http://localhost:8088/graphiql). Ejecutar de a una operacion.
+
+# 1. Crear clientes
+mutation { addClient(name: "Ana Gomez", document: "1001") { id name document } }
+mutation { addClient(name: "Luis Perez", document: "1002") { id name document } }
+
+# 2. Otorgar creditos (APROBADO: monto <= maximo de la categoria)
+mutation {
+  grantCredit(clientId: 1, type: CONSUMO, amount: 20000000, termMonths: 36) {
+    id type amount termMonths interestRate status client { name }
+  }
+}
+mutation {
+  grantCredit(clientId: 2, type: VIVIENDA, amount: 300000000, termMonths: 180) {
+    id type amount status client { name }
+  }
+}
+
+# 3. Credito RECHAZADO (supera el maximo de CONSUMO)
+mutation {
+  grantCredit(clientId: 1, type: CONSUMO, amount: 90000000, termMonths: 48) {
+    id status
+  }
+}
+
+# 4. Consultar estado de un credito
+query { creditById(id: 1) { id type amount status client { name document } } }
+
+# 5. Listar creditos por categoria
+query { creditsByType(type: CONSUMO) { id amount status client { name } } }
+
+# 6. Casos de error
+mutation { grantCredit(clientId: 99, type: CONSUMO, amount: 1000000, termMonths: 12) { id } }
+query { creditById(id: 99) { id } }

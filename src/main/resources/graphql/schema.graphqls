@@ -1,0 +1,53 @@
+"""Categoria del credito. Define tasa anual y monto maximo aprobable."""
+enum CreditType {
+    "Tasa 18% - maximo 50.000.000"
+    CONSUMO
+    "Tasa 11,5% - maximo 500.000.000"
+    VIVIENDA
+    "Tasa 14% - maximo 150.000.000"
+    VEHICULO
+    "Tasa 9% - maximo 80.000.000"
+    EDUCATIVO
+}
+
+"""Estado del credito: se rechaza si el monto supera el maximo de su categoria."""
+enum CreditStatus {
+    APROBADO
+    RECHAZADO
+}
+
+"""Cliente del banco."""
+type Client {
+    id: ID!
+    name: String!
+    "Documento de identidad (unico)"
+    document: String!
+}
+
+"""Credito otorgado (o rechazado) a un cliente."""
+type Credit {
+    id: ID!
+    client: Client!
+    type: CreditType!
+    amount: Float!
+    termMonths: Int!
+    "Tasa de interes anual (%)"
+    interestRate: Float!
+    status: CreditStatus!
+}
+
+type Query {
+    "Lista todos los clientes"
+    clients: [Client!]!
+    "Consulta un credito (y su estado) por ID"
+    creditById(id: ID!): Credit
+    "Lista todos los creditos de una categoria"
+    creditsByType(type: CreditType!): [Credit!]!
+}
+
+type Mutation {
+    "Registra un cliente. Error si el documento ya existe"
+    addClient(name: String!, document: String!): Client!
+    "Otorga un credito a un cliente; retorna el credito con su estado"
+    grantCredit(clientId: ID!, type: CreditType!, amount: Float!, termMonths: Int!): Credit!
+}
